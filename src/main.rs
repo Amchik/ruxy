@@ -1,6 +1,6 @@
 use std::convert::Infallible;
 use std::fs::File;
-use std::net::{IpAddr, SocketAddr};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full};
@@ -163,7 +163,23 @@ async fn forward(req: Request<Incoming>) -> Result<Response<Full<Bytes>>, Infall
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    use clap::Parser;
+
+    #[derive(clap::Parser)]
+    #[clap(about = "Simple reverse proxy with request logging.")]
+    struct Args {
+        /// IP address to listen
+        #[arg(long, default_value_t = IpAddr::V4(Ipv4Addr::LOCALHOST))]
+        ip: IpAddr,
+        /// Port to listen
+        #[arg(short, long, default_value_t = 3000)]
+        port: u16,
+    }
+
+    let args = Args::parse();
+
+    let addr = SocketAddr::from((args.ip, args.port));
+    println!("Server listening on {}:{}", args.ip, args.port);
 
     let listener = TcpListener::bind(addr).await?;
 
